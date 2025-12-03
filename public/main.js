@@ -11,7 +11,10 @@ async function init() {
     console.log(rustApp)
 
     const logBox = document.getElementById("log");
-
+    const canvas = document.getElementById("canvas");
+    rustApp.set_canvas(canvas);
+    
+    
     // List of events you want to capture
     const eventsToLog = [
         "click", //"mousemove",
@@ -21,7 +24,7 @@ async function init() {
     ];
 
     function log(event) {
-        let resp = rustApp.on_call(event.type);
+        let resp = rustApp.on_call(event.type);        
         if (resp != undefined) {
             const msg = `${new Date().toLocaleTimeString()} → ${resp.map(a => a + "<br>")}`;
             logBox.innerHTML += msg + "<br>";
