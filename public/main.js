@@ -33,16 +33,15 @@ async function init() {
         console.log(event.type)
     }
 
-    // Attach event listeners to entire page
-    eventsToLog.forEach(eventType => {
-        document.addEventListener(eventType, log);
-    });
+function prepare_a_card(rank, suit, color) {
+    let dev =
+        `<div class="card" tabindex="0" role="group" aria-label="Ten of hearts">
+       <div class="corner top-left red">10♥</div>
+       <div class="suit-big red" aria-hidden="true">♥</div>
+       <div class="corner bottom-right red">10♥</div>
+    </div>`
 
-    // Also log button-specific events
-    const button = document.getElementById("Deal");
-    button.addEventListener("click", () => {
-        log({ type: "deal" });
-    });
+    return dev
 }
 
 init()

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Five Playing Cards</title>
+  <style>
+    :root {
+      --card-w: 120px;
+      --card-h: 170px;
+      --radius: 12px;
+      --bg: #0b1220;
+      --card-bg: linear-gradient(180deg, #ffffff 0%, #f7f7f9 100%);
+      --shadow: 0 8px 18px rgba(2, 8, 23, 0.45);
+      --gap: 14px;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      padding: 32px;
+      color: #111;
+    }
+
+    .hand {
+      display: flex;
+      gap: var(--gap);
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: var(--radius);
+      background: var(--card-bg);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      box-sizing: border-box;
+      position: relative;
+      user-select: none;
+    }
+
+    .tblemrgn {
+      width: var(--card-w);
+      height: var(--card-h);
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      box-sizing: border-box;
+      position: relative;
+      user-select: none;
+    }
+
+    .btns {
+      width: var(--card-w);
+      font-size: 30px;
+      color: #d33;
+      border-radius: 93%;
+      background: none;
+    }
+
+    .corner {
+      font-weight: 700;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .top-left {
+      align-self: flex-start
+    }
+
+    .bottom-right {
+      align-self: flex-end;
+      transform: rotate(180deg)
+    }
+
+    .suit-big {
+      font-size: 56px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      opacity: 0.98;
+    }
+
+    .red {
+      color: #d33
+    }
+
+    .black {
+      color: #0b0b0b
+    }
+
+    @media (max-width:520px) {
+      :root {
+        --card-w: 90px;
+        --card-h: 130px
+      }
+
+      .suit-big {
+        font-size: 40px
+      }
+
+      .corner {
+        font-size: 14px
+      }
+    }
+
+    .card:focus {
+      outline: 3px solid rgba(255, 255, 255, 0.14);
+      transform: translateY(-4px);
+      transition: transform .14s
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <section class="hand" aria-label="Five playing cards">
+  
+      <div class="card" tabindex="0" role="group" aria-label="Ace of spades">
+        <div class="corner top-left black">A♠</div>
+        <div class="suit-big black" aria-hidden="true">♠</div>
+        <div class="corner bottom-right black">A♠</div>
+      </div>
+
+      <div class="card" tabindex="0" role="group" aria-label="Ten of hearts">
+        <div class="corner top-left red">10♥</div>
+        <div class="suit-big red" aria-hidden="true">♥</div>
+        <div class="corner bottom-right red">10♥</div>
+      </div>
+
+      <div class="card" tabindex="0" role="group" aria-label="Jack of clubs">
+        <div class="corner top-left black">J♣</div>
+        <div class="suit-big black" aria-hidden="true">♣</div>
+        <div class="corner bottom-right black">J♣</div>
+      </div>
+
+      <div class="card" tabindex="0" role="group" aria-label="Queen of diamonds">
+        <div class="corner top-left red">Q♦</div>
+        <div class="suit-big red" aria-hidden="true">♦</div>
+        <div class="corner bottom-right red">Q♦</div>
+      </div>
+
+      <div class="card" tabindex="0" role="group" aria-label="Seven of spades">
+        <div class="corner top-left black">7♠</div>
+        <div class="suit-big black" aria-hidden="true">♠</div>
+        <div class="corner bottom-right black">7♠</div>
+      </div>
+
+    </section>
+
+    <section class="hand" aria-label="Five playing cards">
+      <div class="tblemrgn" tabindex="0" role="group"></div>
+    </section>
+
+    <section class="hand" aria-label="Five playing cards">
+      <button class="btns">🚀</button>
+      <div class="tblemrgn"></div>
+      <button class="btns">$🔺</button>
+      <div class="tblemrgn"></div>
+      <button class="btns">👍</button>
+      <div class="tblemrgn"></div>
+      <button class="btns">👎</button>
+    </section>
+
+
+    <section class="hand" aria-label="Five playing cards">
+      <div class="card" tabindex="0" role="group" aria-label="Ace of spades">
+        <div class="corner top-left black">A♠</div>
+        <div class="suit-big black" aria-hidden="true">♠</div>
+        <div class="corner bottom-right black">A♠</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!--
+    Usage:
+    - Save this file as `five-playing-cards.html` and open in a browser.
+    - To change which cards are shown, edit the text nodes like A♠, 10♥, J♣, etc.
+    - You can use any of: A,2,3,4,5,6,7,8,9,10,J,Q,K plus suits ♠ ♥ ♦ ♣
+  -->
+</body>
+
+</html>

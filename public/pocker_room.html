@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="table.css" />
+  <script src="index.js"></script>
+
+  <style>
+    /* Styles */
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      width: 98%;
+      /* Allow for a small gap between the table and screen edges */
+      height: calc(100vh - 2rem);
+      /* Calculate the full viewport height minus some space at top/bottom */
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 98%;
+      height: 98%;
+      margin: 0 auto;
+      /* Center horizontally */
+      max-width: calc(100vw - 2rem);
+      /* Prevent the table from growing too large, and leave some room for margins */
+      border: 1px solid rgb(241, 236, 236)
+    }
+
+    th,
+    td {
+      text-align: center;
+      padding: 5px;
+      border: 1px solid rgb(247, 240, 240)
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <table>
+      <tr style="height: 80%;"> <!-- Set the height of the first row to be 10% -->
+        <th>
+          <div style="height: 99%">
+            <table>
+              <tr style="height: 10%">
+                <td> players </td>
+              </tr>
+              <tr>
+                <td>
+                  <div>
+                    asdasd
+                    <br />
+                    <br />
+                    ad3
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </th>
+        <th style="width: 70%" colspan="5">
+
+          <section id="table-sec" class="a-row" aria-label="Five playing cards">       
+            <div class="mock" tabindex="0" role="group" aria-label="Ace of spades">
+              <div class="corner top-left black">?</div>
+              <div class="suit-big black" aria-hidden="true">?</div>
+              <div class="corner bottom-right black">?</div>
+            </div>
+      
+            <div class="card" tabindex="0" role="group" aria-label="Ten of hearts">
+              <div class="corner top-left red">10♥</div>
+              <div class="suit-big red" aria-hidden="true">♥</div>
+              <div class="corner bottom-right red">10♥</div>
+            </div>    
+      
+            <div class="card" tabindex="0" role="group" aria-label="Jack of clubs">
+              <div class="corner top-left black">J♣</div>
+              <div class="suit-big black" aria-hidden="true">♣</div>
+              <div class="corner bottom-right black">J♣</div>
+            </div>
+      
+            <div class="card" tabindex="0" role="group" aria-label="Queen of diamonds">
+              <div class="corner top-left red">Q♦</div>
+              <div class="suit-big red" aria-hidden="true">♦</div>
+              <div class="corner bottom-right red">Q♦</div>
+            </div>
+      
+            <div class="card" tabindex="0" role="group" aria-label="Seven of spades">
+              <div class="corner top-left black">7♠</div>
+              <div class="suit-big black" aria-hidden="true">♠</div>
+              <div class="corner bottom-right black">7♠</div>
+            </div>      
+          </section>   
+
+        </th>
+      </tr>
+
+      <tr>
+        <td style="width:15%;">TEXAS HOLD'EM</td>
+        <td style="width:10%;">
+          <button class="btns">🚀</button>
+        </td>
+        <td style="width:10%;">
+          <button class="btns">$🔺</button>
+        </td>
+        <td>
+          <section id="hand-sec" class="a-row" aria-label="Five playing cards">
+            <div class="card" tabindex="0" role="group" aria-label="Ace of spades">
+              <div class="corner top-left black">A♠</div>
+              <div class="suit-big black" aria-hidden="true">♠</div>
+              <div class="corner bottom-right black">A♠</div>
+            </div>
+            <div class="card" tabindex="0" role="group" aria-label="Ace of spades">
+              <div class="corner top-left black">A♠</div>
+              <div class="suit-big black" aria-hidden="true">♠</div>
+              <div class="corner bottom-right black">A♠</div>
+            </div>
+          </section>
+        </td>
+        <td style="width:10%;">
+          <button id="check" class="btns">👍</button>
+        </td>
+        <td style="width:10%;">
+          <button class="btns">👎</button>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+
+</html>

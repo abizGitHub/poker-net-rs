@@ -115,7 +115,6 @@ enum HandRank {
 }
 
 fn evaluate_hand(cards: &[Card]) -> HandRank {
-    // Simplified evaluator: Uses rank histogram + suit count.
     use HandRank::*;
 
     let mut ranks: Vec<Rank> = cards.iter().map(|c| c.rank).collect();
@@ -178,6 +177,123 @@ fn evaluate_hand(cards: &[Card]) -> HandRank {
     }
 
     HighCard(highest)
+}
+
+struct Player {
+    id: String,
+    role: Option<Role>,
+    hand: Vec<Card>,
+}
+
+impl Player {
+    fn new(id: String) -> Self {
+        Player {
+            id: id,
+            role: None,
+            hand: vec![],
+        }
+    }
+}
+
+enum Role {
+    SmallBlind,
+    BigBlind,
+    Others,
+}
+struct Dealer {
+    deck: Deck,
+    game_state: GameState,
+    players: Vec<Player>,
+    cards_on_table: Vec<Card>,
+}
+
+impl Dealer {
+    fn new(players: Vec<Player>) -> Self {
+        Dealer {
+            deck: Deck::new(),
+            game_state: GameState::PreDeal,
+            players,
+            cards_on_table: Vec::new(),
+        }
+    }
+
+    fn knock_knock(&mut self) {
+        match self.game_state {
+            GameState::PreDeal => self.deck.shuffle(),
+
+            GameState::Blinds => {
+                self.players[0].role = Some(Role::SmallBlind);
+                self.players[1].role = Some(Role::BigBlind);
+                self.players
+                    .iter_mut()
+                    .skip(2)
+                    .for_each(|p| p.role = Some(Role::Others));
+            }
+
+            GameState::PreFlop => {
+                self.players
+                    .iter_mut()
+                    .for_each(|p| p.hand = vec![self.deck.deal(), self.deck.deal()]);
+            }
+
+            GameState::Flop => {
+                self.cards_on_table = vec![self.deck.deal(), self.deck.deal(), self.deck.deal()]
+            }
+
+            GameState::Turn => {
+                self.players
+                    .iter_mut()
+                    .filter(|p| p.role.is_some())
+                    .for_each(|p| p.hand.push(self.deck.deal()));
+            }
+            GameState::River => {
+                self.players
+                    .iter_mut()
+                    .filter(|p| p.role.is_some())
+                    .for_each(|p| p.hand.push(self.deck.deal()));
+            }
+            GameState::Shutdown => {}
+        };
+        self.change_state();
+    }
+
+    fn change_state(&mut self) {
+        self.game_state = match self.game_state {
+            GameState::PreDeal => GameState::Blinds,
+            GameState::Blinds => GameState::PreFlop,
+            GameState::PreFlop => GameState::Flop,
+            GameState::Flop => GameState::Turn,
+            GameState::Turn => GameState::River,
+            GameState::River => GameState::Shutdown,
+            GameState::Shutdown => GameState::Shutdown,
+        };
+    }
+}
+
+pub struct GameTable {
+    dealer: Dealer,
+}
+
+impl GameTable {
+    pub fn set_a_table() -> Self {
+        GameTable {
+            dealer: Dealer::new(vec![]),
+        }
+    }
+
+    fn add_player(&mut self, id: String) {
+        self.dealer.players.push(Player::new(id));
+    }
+}
+
+enum GameState {
+    PreDeal,
+    Blinds,
+    PreFlop,
+    Flop,
+    Turn,
+    River,
+    Shutdown,
 }
 
 // temp : for test

@@ -1,28 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Event Logger</title>
-  <style>
-    #log {
-      border: 1px solid #ccc;
-      padding: 10px;
-      height: 200px;
-      overflow-y: auto;
-      background: #f9f9f9;
-      font-family: monospace;
-    }
-    button {
-      padding: 10px 20px;
-      margin-bottom: 10px;
-    }
-  </style>
-</head>
-<body>
+<html>
 
-  <button id="Deal">Deal</button>
-  <div id="log"></div>  
-  <canvas id="canvas" width="400" height="400"></canvas>  
-  
+<head>
+  <title>Texas Hold'em</title>
+</head>
+
+<body>
+  <label for="bet_amount">Bet Amount :</label>
+  <input id="bet_amount" />
+  <br />
+  <br />
+  <button id="btn">
+    start a game
+  </button>
+  <br />
+  <div id="linkContainer"></div>
 </body>
+
 </html>
