@@ -1,3 +1,5 @@
 /target
 /node_modules
 /pkg    
+/backend/target
+/backend/Cargo.lock   

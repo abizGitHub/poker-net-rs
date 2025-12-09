@@ -1,6 +1,5 @@
 const path = require('path')
 const WP = require('html-webpack-plugin')
-const WSMP = require('@wasm-tool/wasm-pack-plugin')
 const { experiments } = require('webpack')
 
 module.exports = {
@@ -23,7 +22,6 @@ module.exports = {
             filename: "pocker_room.html",
             chunks: ["pocker_room"]
         }),
-        new WSMP({ crateDirectory: path.resolve(__dirname, '.') })
     ],
 
     experiments: {
