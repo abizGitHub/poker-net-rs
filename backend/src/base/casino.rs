@@ -3,22 +3,30 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 
 use crate::base::table::GameTable;
-static DB: Lazy<RwLock<HashMap<String, GameTable>>> = Lazy::new(|| RwLock::new(HashMap::new()));
+static TABLES: Lazy<RwLock<HashMap<String, GameTable>>> = Lazy::new(|| RwLock::new(HashMap::new()));
+static PLAYERS_ON_TABLES: Lazy<RwLock<HashMap<String, String>>> =
+    Lazy::new(|| RwLock::new(HashMap::new()));
 
 pub async fn set_a_table() -> String {
     let table_id = generate_long_id();
     let table = GameTable::set_a_table();
-    DB.write()
+    TABLES
+        .write()
         .expect("could not write!")
         .insert(table_id.clone(), table);
     table_id
 }
 
 pub async fn add_player_to_table(table_id: &str) -> Result<String, ()> {
-    match DB.write().unwrap().get_mut(table_id) {
+    match TABLES.write().unwrap().get_mut(table_id) {
         Some(table) => {
             let palyer_id = generate_short_id();
             table.add_player(&palyer_id);
+
+            PLAYERS_ON_TABLES
+                .write()
+                .unwrap()
+                .insert(palyer_id.clone(), table_id.to_string());
             Ok(palyer_id)
         }
         None => Err(()),
@@ -26,10 +34,30 @@ pub async fn add_player_to_table(table_id: &str) -> Result<String, ()> {
 }
 
 pub async fn get_table_players(table_id: &str) -> Result<Vec<String>, ()> {
-    match DB.read().unwrap().get(table_id) {
+    match TABLES.read().unwrap().get(table_id) {
         Some(table) => Ok(table.players()),
         None => Err(()),
     }
+}
+
+pub async fn player_disconnected(player_id: &str) -> Vec<String> {
+    let table_id = PLAYERS_ON_TABLES
+        .write()
+        .unwrap()
+        .remove(player_id)
+        .unwrap();
+
+    match TABLES.write().unwrap().get_mut(&table_id) {
+        Some(table) => {
+            table.remove_player(player_id);
+            table.players().iter().map(|p|p.clone()).collect()
+        },
+        None => {
+            vec![]
+        }
+    }
+
+    
 }
 
 fn generate_short_id() -> String {

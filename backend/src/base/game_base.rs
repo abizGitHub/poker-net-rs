@@ -1,6 +1,5 @@
 use crate::base::card::{Deck, evaluate_hand};
 
-
 // temp : for test
 pub fn tmp_two_player() -> Vec<String> {
     let mut out = Vec::new();

@@ -4,7 +4,7 @@ const WS_URL = 'ws://127.0.0.1:9001'; // Example URL
 function produce_join_link(table_id) {
   const link = `pocker_room.html?table_id=${table_id}`;
   const container = document.getElementById("linkContainer");
-  container.innerHTML = `<br/> link to join : <a href="${link}">${location.origin}/${table_id}</a>`;
+  container.innerHTML = `<br/> link to join : <a href="${link}">${link}</a>`;
 }
 
 function init() {
@@ -13,7 +13,7 @@ function init() {
   
   document.getElementById("btn").addEventListener("click", () => {
     socket.addEventListener('message', (event) => {
-      produce_join_link(event.data);
+      produce_join_link(event.data.split("::")[1]);
     });
     sendMessage("set_a_table");
   });

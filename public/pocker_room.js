@@ -3,9 +3,11 @@ const table_id = new URLSearchParams(window.location.search).get("table_id");
 const table_section = document.getElementById("table-sec");
 const hand_section = document.getElementById("hand-sec");
 const user_section = document.getElementById("user-sec");
+const players_section = document.getElementById("players-sec");
 
 table_section.innerHTML = [1, 2, 3, 4, 5].map((a) => prepare_a_card("", "", "white")).join("");
 hand_section.innerHTML = [1, 2].map((a) => prepare_a_card("", "", "white")).join("");
+
 
 function prepare_a_card(rank, suit, color) {
   let card_class = "card"
@@ -24,18 +26,34 @@ function prepare_a_card(rank, suit, color) {
 }
 
 document.getElementById("check").addEventListener("click", () => {
-  console.log(table_id)
-  socket.addEventListener('message', (event) => {
-    console.log(event.data);
-  });
-  sendMessage("add_player_to_table::" + table_id);
+  sendMessage(89)
 });
 
 
 document.getElementById("fold").addEventListener("click", () => {
-  console.log(table_id)
-  socket.addEventListener('message', (event) => {
-    user_section.innerHTML = event.data.split(',').map((a) => a + '<br/>').join("")
-  });
-  sendMessage("get_table_players::" + table_id);
+
+
 });
+
+function init_table() {
+
+  socket.addEventListener('message', (event) => {
+    dispatch_event(event.data);
+  });
+
+  sendMessage("add_player_to_table::" + table_id);
+}
+
+init_table()
+
+function dispatch_event(cmd) {
+  let splt = cmd.split('::')
+  if (splt[0] == "players") {
+    players_section.innerHTML = splt[1].split(',').map((a) => a + '<br/>------------------<br/>').join("")
+  } else if (splt[0] == "user_id") {
+    user_section.innerHTML = splt[1]
+  } else {
+    console.log("unknown command!" + cmd)
+  }
+}
+

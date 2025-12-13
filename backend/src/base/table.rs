@@ -44,6 +44,14 @@ impl Dealer {
         }
     }
 
+    fn remove_player(&mut self, p_id: &str) {
+        if let Some(pos) = self.players.iter().position(|p| p.id == p_id) {
+            self.players.remove(pos);
+        } else {
+            println!("Couldn't find pl with the specified id");
+        }
+    }
+
     pub fn knock_knock(&mut self) {
         match self.game_state {
             GameState::PreDeal => self.deck.shuffle(),
@@ -115,6 +123,10 @@ impl GameTable {
 
     pub fn players(&self) -> Vec<String> {
         self.dealer.players.iter().map(|p| p.id.clone()).collect()
+    }
+
+    pub fn remove_player(&mut self, id: &str) {
+        self.dealer.remove_player(id)
     }
 }
 
