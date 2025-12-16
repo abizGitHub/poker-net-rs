@@ -2,7 +2,8 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::RwLock;
 
-use crate::base::table::GameTable;
+use crate::PlayerDto;
+use crate::base::table::{GameTable, PlayerState};
 static TABLES: Lazy<RwLock<HashMap<String, GameTable>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 static PLAYERS_ON_TABLES: Lazy<RwLock<HashMap<String, String>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
@@ -33,14 +34,14 @@ pub async fn add_player_to_table(table_id: &str) -> Result<String, ()> {
     }
 }
 
-pub async fn get_table_players(table_id: &str) -> Result<Vec<String>, ()> {
+pub async fn get_table_players(table_id: &str) -> Result<Vec<PlayerDto>, ()> {
     match TABLES.read().unwrap().get(table_id) {
         Some(table) => Ok(table.players()),
         None => Err(()),
     }
 }
 
-pub async fn player_disconnected(player_id: &str) -> Vec<String> {
+pub async fn player_disconnected(player_id: &str) -> Vec<PlayerDto> {
     let table_id = PLAYERS_ON_TABLES
         .write()
         .unwrap()
@@ -50,14 +51,28 @@ pub async fn player_disconnected(player_id: &str) -> Vec<String> {
     match TABLES.write().unwrap().get_mut(&table_id) {
         Some(table) => {
             table.remove_player(player_id);
-            table.players().iter().map(|p|p.clone()).collect()
-        },
+            table.players().iter().map(|p| p.clone()).collect()
+        }
         None => {
             vec![]
         }
     }
+}
 
-    
+pub async fn player_change_state(
+    player_id: &str,
+    new_state: &PlayerState,
+) -> Result<Vec<PlayerDto>, ()> {
+    match PLAYERS_ON_TABLES.read().unwrap().get(player_id) {
+        Some(table_id) => match TABLES.write().unwrap().get_mut(table_id) {
+            Some(table) => {
+                table.player_change_state(player_id, new_state);
+                Ok(table.players().clone())
+            }
+            None => Err(()),
+        },
+        None => Err(()),
+    }
 }
 
 fn generate_short_id() -> String {

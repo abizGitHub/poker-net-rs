@@ -1,12 +1,22 @@
 use serde::{Deserialize, Serialize};
 
-use crate::base::card::{Card, Deck};
+use crate::{
+    PlayerDto,
+    base::card::{Card, Deck},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Player {
     id: String,
     role: Option<Role>,
     hand: Vec<Card>,
+    state: PlayerState,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PlayerState {
+    READY,
+    WAITING,
 }
 
 impl Player {
@@ -15,12 +25,23 @@ impl Player {
             id: id,
             role: None,
             hand: vec![],
+            state: PlayerState::WAITING,
+        }
+    }
+}
+
+impl Into<PlayerDto> for &Player {
+    fn into(self) -> PlayerDto {
+        PlayerDto {
+            id: self.id.clone(),
+            role: self.role.clone(),
+            state: self.state.clone(),
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-enum Role {
+pub enum Role {
     SmallBlind,
     BigBlind,
     Others,
@@ -47,6 +68,14 @@ impl Dealer {
     fn remove_player(&mut self, p_id: &str) {
         if let Some(pos) = self.players.iter().position(|p| p.id == p_id) {
             self.players.remove(pos);
+        } else {
+            println!("Couldn't find pl with the specified id");
+        }
+    }
+
+    pub fn player_change_state(&mut self, p_id: &str, state: &PlayerState) {
+        if let Some(pos) = self.players.iter().position(|p| p.id == p_id) {
+            self.players.get_mut(pos).unwrap().state = state.clone();
         } else {
             println!("Couldn't find pl with the specified id");
         }
@@ -121,12 +150,16 @@ impl GameTable {
         self.dealer.players.push(Player::new(id.to_string()));
     }
 
-    pub fn players(&self) -> Vec<String> {
-        self.dealer.players.iter().map(|p| p.id.clone()).collect()
+    pub fn players(&self) -> Vec<PlayerDto> {
+        self.dealer.players.iter().map(|p| p.into()).collect()
     }
 
     pub fn remove_player(&mut self, id: &str) {
         self.dealer.remove_player(id)
+    }
+
+    pub fn player_change_state(&mut self, id: &str, state: &PlayerState) {
+        self.dealer.player_change_state(id, state)
     }
 }
 

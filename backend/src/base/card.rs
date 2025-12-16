@@ -12,7 +12,7 @@ enum Suit {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-enum Rank {
+pub enum Rank {
     Two = 2,
     Three,
     Four,

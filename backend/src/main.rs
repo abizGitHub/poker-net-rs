@@ -1,10 +1,8 @@
-use futures_util::{SinkExt, StreamExt};
 use std::{collections::HashSet, net::SocketAddr, sync::Arc};
 use tokio::{
-    net::{TcpListener, TcpStream},
-    sync::{Mutex, RwLock, broadcast},
+    net::TcpListener,
+    sync::{Mutex, RwLock},
 };
-use tungstenite::Message;
 mod net;
 use crate::net::dispatcher::{Dispatcher, handle_socket};
 
@@ -28,8 +26,8 @@ async fn main() {
 
         let clients = active_clients.clone();
 
-        tokio::spawn(async move {
-            handle_socket(stream, peer_addr, tx, rx, clients, tx_dspch).await
-        });
+        tokio::spawn(
+            async move { handle_socket(stream, peer_addr, tx, rx, clients, tx_dspch).await },
+        );
     }
 }

@@ -1,7 +1,7 @@
 use futures_util::{SinkExt, StreamExt};
 use std::{
     collections::{HashMap, HashSet},
-    net::{SocketAddr, SocketAddrV4},
+    net::SocketAddr,
     sync::Arc,
 };
 use tokio::{
