@@ -4,6 +4,32 @@ pub use crate::base::casino;
 use crate::base::table::{PlayerState, Role};
 
 pub mod base;
+pub mod net;
+
+pub enum RequestWrapper {
+    SetATable,
+    AddPlayerToTable(String),
+    ReadyToStartGame,
+    Unknown(String),
+}
+
+impl From<&str> for RequestWrapper {
+    fn from(value: &str) -> Self {
+        let cmd: Vec<&str> = value.split("::").collect();
+        match cmd.len() {
+            1 => match cmd[0] {
+                "set_a_table" => Self::SetATable,
+                "READY" => Self::ReadyToStartGame,
+                _ => Self::Unknown(value.to_string()),
+            },
+            2 => match cmd[0] {
+                "add_player_to_table" => Self::AddPlayerToTable(cmd[1].to_string()),
+                _ => Self::Unknown(value.to_string()),
+            },
+            _ => Self::Unknown(value.to_string()),
+        }
+    }
+}
 
 pub enum ResponseWrapper {
     TableId(String),
@@ -11,6 +37,7 @@ pub enum ResponseWrapper {
     Players(Vec<PlayerDto>),
     PlayerDisconnected(String),
     PlayerStateChanged(String, PlayerState),
+    StartGame,
     Unknown(String),
 }
 

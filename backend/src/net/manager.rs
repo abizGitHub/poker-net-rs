@@ -1,24 +1,28 @@
-use std::{
-    collections::{HashMap, HashSet},
-    net::SocketAddr,
-    sync::Arc,
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+
+use tokio::sync::RwLock;
+
+use crate::{
+    RequestWrapper, ResponseWrapper,
+    base::{state_manager::StateManager, table::PlayerState},
+    casino,
+    net::dispatcher::{BatchMsg, DispatcherCmd, FatMsg},
 };
-
-use pocker_back::{ResponseWrapper, base::table::PlayerState, casino};
-use tokio::sync::{Mutex, RwLock};
-
-use crate::net::dispatcher::{BatchMsg, DispatcherCmd, FatMsg};
 
 pub struct Manager {
     playes_addr: Arc<RwLock<HashMap<String, SocketAddr>>>,
     addr_playes: Arc<RwLock<HashMap<SocketAddr, String>>>,
+    state_manager: StateManager,
 }
 
 impl Manager {
     pub fn new() -> Self {
+        let playes_addr = Arc::new(RwLock::new(HashMap::new()));
+        let cloned = playes_addr.clone();
         Manager {
-            playes_addr: Arc::new(RwLock::new(HashMap::new())),
+            playes_addr,
             addr_playes: Arc::new(RwLock::new(HashMap::new())),
+            state_manager: StateManager::new(cloned),
         }
     }
 
@@ -26,9 +30,39 @@ impl Manager {
         let from = fat.from.unwrap();
         let mut batch_msgs = vec![];
 
-        for cmd in self.handle_command(&fat.msg).await {
-            let resp = match cmd {
-                ResponseWrapper::TableId(_) => BatchMsg::new(vec![from.clone()], cmd.into()),
+        let responses = match RequestWrapper::from(fat.msg.as_str()) {
+            RequestWrapper::SetATable => {
+                vec![ResponseWrapper::TableId(casino::set_a_table().await)]
+            }
+            RequestWrapper::AddPlayerToTable(table_id) => {
+                let player_id = casino::add_player_to_table(&table_id).await.unwrap();
+                let players = casino::get_table_players(&table_id)
+                    .await
+                    .unwrap()
+                    .into_iter()
+                    .collect();
+
+                vec![
+                    ResponseWrapper::UserId(player_id),
+                    ResponseWrapper::Players(players),
+                ]
+            }
+
+            RequestWrapper::ReadyToStartGame => match self.addr_playes.read().await.get(&from) {
+                Some(player_id) => {
+                    self.state_manager
+                        .process(player_id, &PlayerState::READY)
+                        .await
+                }
+                None => vec![ResponseWrapper::Unknown(fat.msg.to_string())],
+            },
+
+            RequestWrapper::Unknown(msg) => vec![ResponseWrapper::Unknown(fat.msg.to_string())],
+        };
+
+        for response in responses {
+            let resp = match response {
+                ResponseWrapper::TableId(_) => BatchMsg::new(vec![from.clone()], response.into()),
                 ResponseWrapper::UserId(id) => {
                     self.playes_addr.write().await.insert(id.clone(), from);
 
@@ -51,27 +85,19 @@ impl Manager {
                         Some(player_id) => {
                             let players = self.playes_addr.read().await;
 
-                            let recceivers = casino::player_change_state(player_id, &state)
-                                .await
-                                .unwrap()
+                            let recceivers: Vec<SocketAddr> = list
                                 .iter()
                                 .map(|p| players.get(&p.id).unwrap().clone())
                                 .collect();
 
-                            BatchMsg::new(
-                                recceivers,
-                                ResponseWrapper::PlayerStateChanged(player_id.clone(), state)
-                                    .into(),
-                            )
+                            BatchMsg::new(recceivers, ResponseWrapper::Players(list).into())
                         }
-                        None => BatchMsg::new(
-                            vec![from.clone()],
-                            ResponseWrapper::Unknown("can't change state!".to_string()).into(),
-                        ),
+                        None => BatchMsg::new(vec![from.clone()], "".to_string()),
                     }
                 }
-                ResponseWrapper::Unknown(_) => BatchMsg::new(vec![from.clone()], cmd.into()),
-                ResponseWrapper::PlayerDisconnected(_) => BatchMsg::new(vec![], cmd.into()),
+                ResponseWrapper::StartGame => {}
+                ResponseWrapper::PlayerDisconnected(_) => BatchMsg::new(vec![], response.into()),
+                ResponseWrapper::Unknown(_) => BatchMsg::new(vec![from.clone()], response.into()),
             };
             batch_msgs.push(resp);
         }
@@ -95,40 +121,6 @@ impl Manager {
                     ResponseWrapper::PlayerDisconnected(player_id).into(),
                 )]
             }
-        }
-    }
-
-    async fn handle_command(&mut self, msg: &str) -> Vec<ResponseWrapper> {
-        let cmd: Vec<&str> = msg.split("::").collect();
-
-        match cmd.len() {
-            1 => match cmd[0] {
-                "set_a_table" => vec![ResponseWrapper::TableId(casino::set_a_table().await)],
-                "READY" => {
-                    vec![ResponseWrapper::PlayerStateChanged(
-                        String::new(),
-                        PlayerState::READY,
-                    )]
-                }
-                _ => vec![ResponseWrapper::Unknown(msg.to_string())],
-            },
-            2 => match cmd[0] {
-                "add_player_to_table" => {
-                    let table_id = cmd[1];
-                    let player_id = casino::add_player_to_table(table_id).await.unwrap();
-                    let players = casino::get_table_players(table_id)
-                        .await
-                        .unwrap()
-                        .into_iter()
-                        .collect();
-                    vec![
-                        ResponseWrapper::UserId(player_id),
-                        ResponseWrapper::Players(players),
-                    ]
-                }
-                _ => vec![ResponseWrapper::Unknown(msg.to_string())],
-            },
-            _ => vec![ResponseWrapper::Unknown(msg.to_string())],
         }
     }
 }

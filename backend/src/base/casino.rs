@@ -53,9 +53,7 @@ pub async fn player_disconnected(player_id: &str) -> Vec<PlayerDto> {
             table.remove_player(player_id);
             table.players().iter().map(|p| p.clone()).collect()
         }
-        None => {
-            vec![]
-        }
+        None => vec![],
     }
 }
 
