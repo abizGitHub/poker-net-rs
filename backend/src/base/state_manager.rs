@@ -1,32 +1,35 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use crate::base::{
+    casino,
+    table::{PlayerState, TableDto},
+};
 
-use tokio::sync::RwLock;
-
-use crate::{ResponseWrapper, base::table::PlayerState, casino};
-
-pub struct StateManager {
-    playes_addr: Arc<RwLock<HashMap<String, SocketAddr>>>,
-}
+pub struct StateManager;
 
 impl StateManager {
-    pub fn new(playes_addr: Arc<RwLock<HashMap<String, SocketAddr>>>) -> Self {
-        StateManager { playes_addr }
+    pub fn new() -> Self {
+        StateManager {}
     }
 
-    pub async fn process(&mut self, player_id: &str, state: &PlayerState) -> Vec<ResponseWrapper> {
-        let start_game = casino::player_change_state(player_id, &state)
+    pub async fn process(
+        &mut self,
+        player_id: &str,
+        state: &PlayerState,
+    ) -> Vec<StateManagerResponse> {
+        let table = casino::player_change_state(player_id, &state)
             .await
-            .unwrap()
-            .iter()
-            .all(|f| f.state == PlayerState::READY);
+            .unwrap();
 
-        let state_changed =
-            ResponseWrapper::PlayerStateChanged(player_id.to_string(), state.clone());
+        let state_changed = StateManagerResponse::PlayerStateChanged(table.clone());
 
-        if start_game {
-            vec![state_changed, ResponseWrapper::StartGame]
+        if table.players.iter().all(|f| f.state == PlayerState::READY) {
+            vec![state_changed, StateManagerResponse::StartGame(table)]
         } else {
             vec![state_changed]
         }
     }
+}
+
+pub enum StateManagerResponse {
+    PlayerStateChanged(TableDto),
+    StartGame(TableDto),
 }

@@ -2,8 +2,7 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::RwLock;
 
-use crate::PlayerDto;
-use crate::base::table::{GameTable, PlayerState};
+use crate::base::table::{GameTable, PlayerDto, PlayerState, TableDto};
 static TABLES: Lazy<RwLock<HashMap<String, GameTable>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 static PLAYERS_ON_TABLES: Lazy<RwLock<HashMap<String, String>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
@@ -57,15 +56,12 @@ pub async fn player_disconnected(player_id: &str) -> Vec<PlayerDto> {
     }
 }
 
-pub async fn player_change_state(
-    player_id: &str,
-    new_state: &PlayerState,
-) -> Result<Vec<PlayerDto>, ()> {
+pub async fn player_change_state(player_id: &str, new_state: &PlayerState) -> Result<TableDto, ()> {
     match PLAYERS_ON_TABLES.read().unwrap().get(player_id) {
         Some(table_id) => match TABLES.write().unwrap().get_mut(table_id) {
             Some(table) => {
                 table.player_change_state(player_id, new_state);
-                Ok(table.players().clone())
+                Ok(TableDto::new(table_id, table.players()))
             }
             None => Err(()),
         },

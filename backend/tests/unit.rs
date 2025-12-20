@@ -9,7 +9,12 @@ mod tests {
         let player1_id = casino::add_player_to_table(&table_id).await.unwrap();
         let player2_id = casino::add_player_to_table(&table_id).await.unwrap();
 
-        let players = casino::get_table_players(&table_id).await.unwrap();
+        let players: Vec<String> = casino::get_table_players(&table_id)
+            .await
+            .unwrap()
+            .iter()
+            .map(|p| p.id.clone())
+            .collect();
 
         assert_eq!(table_id.len(), 12);
         assert_eq!(player1_id.len(), 8);

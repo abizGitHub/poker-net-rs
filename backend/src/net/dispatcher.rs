@@ -14,7 +14,7 @@ use tokio::{
 use tokio_tungstenite::accept_async;
 use tungstenite::Message;
 
-use crate::net::manager::Manager;
+use crate::net::manager::{Manager, ResponseWrapper};
 
 #[derive(Debug, Clone)]
 pub struct FatMsg {
@@ -29,8 +29,11 @@ pub struct BatchMsg {
 }
 
 impl BatchMsg {
-    pub fn new(to: Vec<SocketAddr>, msg: String) -> Self {
-        BatchMsg { to, msg }
+    pub fn new(to: Vec<SocketAddr>, msg: ResponseWrapper) -> Self {
+        BatchMsg {
+            to,
+            msg: msg.into(),
+        }
     }
 }
 

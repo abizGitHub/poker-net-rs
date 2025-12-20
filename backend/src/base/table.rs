@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    PlayerDto,
-    base::card::{Card, Deck},
-};
+use crate::base::card::{Card, Deck};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Player {
@@ -172,4 +169,26 @@ enum GameState {
     Turn,
     River,
     Shutdown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlayerDto {
+    pub id: String,
+    pub role: Option<Role>,
+    pub state: PlayerState,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TableDto {
+    pub id: String,
+    pub players: Vec<PlayerDto>,
+}
+
+impl TableDto {
+    pub fn new(table_id: &str, players: Vec<PlayerDto>) -> Self {
+        TableDto {
+            id: table_id.to_string(),
+            players,
+        }
+    }
 }

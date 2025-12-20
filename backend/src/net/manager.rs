@@ -3,9 +3,11 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 
 use crate::{
-    RequestWrapper, ResponseWrapper,
-    base::{state_manager::StateManager, table::PlayerState},
-    casino,
+    base::{
+        casino,
+        state_manager::{StateManager, StateManagerResponse},
+        table::{PlayerDto, PlayerState},
+    },
     net::dispatcher::{BatchMsg, DispatcherCmd, FatMsg},
 };
 
@@ -18,90 +20,93 @@ pub struct Manager {
 impl Manager {
     pub fn new() -> Self {
         let playes_addr = Arc::new(RwLock::new(HashMap::new()));
-        let cloned = playes_addr.clone();
         Manager {
             playes_addr,
             addr_playes: Arc::new(RwLock::new(HashMap::new())),
-            state_manager: StateManager::new(cloned),
+            state_manager: StateManager::new(),
         }
     }
 
     pub async fn process(&mut self, fat: FatMsg) -> Vec<BatchMsg> {
         let from = fat.from.unwrap();
-        let mut batch_msgs = vec![];
 
-        let responses = match RequestWrapper::from(fat.msg.as_str()) {
+        match RequestWrapper::from(fat.msg.as_str()) {
             RequestWrapper::SetATable => {
-                vec![ResponseWrapper::TableId(casino::set_a_table().await)]
+                vec![BatchMsg::new(
+                    vec![from.clone()],
+                    ResponseWrapper::TableId(casino::set_a_table().await),
+                )]
             }
+
             RequestWrapper::AddPlayerToTable(table_id) => {
                 let player_id = casino::add_player_to_table(&table_id).await.unwrap();
-                let players = casino::get_table_players(&table_id)
+
+                let players: Vec<PlayerDto> = casino::get_table_players(&table_id)
                     .await
                     .unwrap()
                     .into_iter()
                     .collect();
 
+                self.playes_addr
+                    .write()
+                    .await
+                    .insert(player_id.clone(), from);
+
+                self.addr_playes
+                    .write()
+                    .await
+                    .insert(from, player_id.clone());
+
+                let recceivers: Vec<SocketAddr> = self.players_to_address(&players).await;
+
                 vec![
-                    ResponseWrapper::UserId(player_id),
-                    ResponseWrapper::Players(players),
+                    BatchMsg::new(vec![from.clone()], ResponseWrapper::UserId(player_id)),
+                    BatchMsg::new(recceivers, ResponseWrapper::Players(players)),
                 ]
             }
 
             RequestWrapper::ReadyToStartGame => match self.addr_playes.read().await.get(&from) {
                 Some(player_id) => {
-                    self.state_manager
+                    let mut batches = vec![];
+                    for r in self
+                        .state_manager
                         .process(player_id, &PlayerState::READY)
                         .await
+                        .into_iter()
+                    {
+                        batches.push(match r {
+                            StateManagerResponse::PlayerStateChanged(table) => BatchMsg::new(
+                                self.players_to_address(&table.players).await,
+                                ResponseWrapper::Players(table.players),
+                            ),
+                            StateManagerResponse::StartGame(table) => BatchMsg::new(
+                                self.players_to_address(&table.players).await,
+                                ResponseWrapper::StartGame,
+                            ),
+                        })
+                    }
+                    batches
                 }
-                None => vec![ResponseWrapper::Unknown(fat.msg.to_string())],
+
+                None => vec![BatchMsg::new(
+                    vec![from.clone()],
+                    ResponseWrapper::Unknown(fat.msg.to_string()),
+                )],
             },
 
-            RequestWrapper::Unknown(msg) => vec![ResponseWrapper::Unknown(fat.msg.to_string())],
-        };
-
-        for response in responses {
-            let resp = match response {
-                ResponseWrapper::TableId(_) => BatchMsg::new(vec![from.clone()], response.into()),
-                ResponseWrapper::UserId(id) => {
-                    self.playes_addr.write().await.insert(id.clone(), from);
-
-                    self.addr_playes.write().await.insert(from, id.clone());
-
-                    BatchMsg::new(vec![from], ResponseWrapper::UserId(id).into())
-                }
-                ResponseWrapper::Players(list) => {
-                    let players = self.playes_addr.read().await;
-
-                    let recceivers: Vec<SocketAddr> = list
-                        .iter()
-                        .map(|p| players.get(&p.id).unwrap().clone())
-                        .collect();
-
-                    BatchMsg::new(recceivers, ResponseWrapper::Players(list).into())
-                }
-                ResponseWrapper::PlayerStateChanged(_, state) => {
-                    match self.addr_playes.read().await.get(&from) {
-                        Some(player_id) => {
-                            let players = self.playes_addr.read().await;
-
-                            let recceivers: Vec<SocketAddr> = list
-                                .iter()
-                                .map(|p| players.get(&p.id).unwrap().clone())
-                                .collect();
-
-                            BatchMsg::new(recceivers, ResponseWrapper::Players(list).into())
-                        }
-                        None => BatchMsg::new(vec![from.clone()], "".to_string()),
-                    }
-                }
-                ResponseWrapper::StartGame => {}
-                ResponseWrapper::PlayerDisconnected(_) => BatchMsg::new(vec![], response.into()),
-                ResponseWrapper::Unknown(_) => BatchMsg::new(vec![from.clone()], response.into()),
-            };
-            batch_msgs.push(resp);
+            RequestWrapper::Unknown(msg) => vec![BatchMsg::new(
+                vec![from.clone()],
+                ResponseWrapper::Unknown(msg),
+            )],
         }
-        batch_msgs
+    }
+
+    async fn players_to_address(&self, players: &Vec<PlayerDto>) -> Vec<SocketAddr> {
+        let map = self.playes_addr.read().await;
+        players
+            .iter()
+            .map(|p| map.get(&p.id).unwrap().clone())
+            .collect()
     }
 
     pub async fn dispatcher_cmd(&mut self, cmd: DispatcherCmd) -> Vec<BatchMsg> {
@@ -118,9 +123,60 @@ impl Manager {
 
                 vec![BatchMsg::new(
                     players_on_table,
-                    ResponseWrapper::PlayerDisconnected(player_id).into(),
+                    ResponseWrapper::PlayerDisconnected(player_id),
                 )]
             }
+        }
+    }
+}
+
+pub enum ResponseWrapper {
+    TableId(String),
+    UserId(String),
+    Players(Vec<PlayerDto>),
+    PlayerDisconnected(String),
+    StartGame,
+    Unknown(String),
+}
+
+impl Into<String> for ResponseWrapper {
+    fn into(self) -> String {
+        match self {
+            Self::TableId(id) => format!("table_id::{id}"),
+            Self::UserId(id) => format!("user_id::{id}"),
+            Self::Players(ps) => {
+                let f = serde_json::to_string(&ps);
+                println!("{f:?}");
+                format!("players::{:?}", f)
+            }
+            Self::PlayerDisconnected(id) => format!("player_discannected::{id}"),
+            Self::StartGame => format!("start_game"),
+            Self::Unknown(m) => format!("unknown::{m}"),
+        }
+    }
+}
+
+pub enum RequestWrapper {
+    SetATable,
+    AddPlayerToTable(String),
+    ReadyToStartGame,
+    Unknown(String),
+}
+
+impl From<&str> for RequestWrapper {
+    fn from(value: &str) -> Self {
+        let cmd: Vec<&str> = value.split("::").collect();
+        match cmd.len() {
+            1 => match cmd[0] {
+                "set_a_table" => Self::SetATable,
+                "READY" => Self::ReadyToStartGame,
+                _ => Self::Unknown(value.to_string()),
+            },
+            2 => match cmd[0] {
+                "add_player_to_table" => Self::AddPlayerToTable(cmd[1].to_string()),
+                _ => Self::Unknown(value.to_string()),
+            },
+            _ => Self::Unknown(value.to_string()),
         }
     }
 }
