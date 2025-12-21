@@ -38,9 +38,6 @@ impl BatchMsg {
 }
 
 impl FatMsg {
-    pub fn from_mngr(msg: String) -> Self {
-        FatMsg { from: None, msg }
-    }
     pub fn new(addr: SocketAddr, msg: String) -> Self {
         FatMsg {
             from: Some(addr),

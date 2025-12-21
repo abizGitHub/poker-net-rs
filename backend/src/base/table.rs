@@ -1,6 +1,8 @@
+use std::error;
+
 use serde::{Deserialize, Serialize};
 
-use crate::base::card::{Card, Deck};
+use crate::base::card::{Card, Deck, HandRank, evaluate_hand};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Player {
@@ -33,6 +35,7 @@ impl Into<PlayerDto> for &Player {
             id: self.id.clone(),
             role: self.role.clone(),
             state: self.state.clone(),
+            hand: self.hand.clone(),
         }
     }
 }
@@ -44,12 +47,13 @@ pub enum Role {
     Others,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 struct Dealer {
     deck: Deck,
     game_state: GameState,
     players: Vec<Player>,
     cards_on_table: Vec<Card>,
+    game_result: Option<GameResult>,
 }
 
 impl Dealer {
@@ -59,6 +63,7 @@ impl Dealer {
             game_state: GameState::PreDeal,
             players,
             cards_on_table: Vec::new(),
+            game_result: None,
         }
     }
 
@@ -70,11 +75,22 @@ impl Dealer {
         }
     }
 
-    pub fn player_change_state(&mut self, p_id: &str, state: &PlayerState) {
+    pub fn player_change_state(&mut self, p_id: &str, state: &PlayerState) -> bool {
         if let Some(pos) = self.players.iter().position(|p| p.id == p_id) {
             self.players.get_mut(pos).unwrap().state = state.clone();
+            if self.players.iter().all(|p| p.state == PlayerState::READY) {
+                self.knock_knock();
+                self.players
+                    .iter_mut()
+                    .for_each(|p| p.state = PlayerState::WAITING);
+
+                true
+            } else {
+                false
+            }
         } else {
             println!("Couldn't find pl with the specified id");
+            false
         }
     }
 
@@ -113,7 +129,9 @@ impl Dealer {
                     .filter(|p| p.role.is_some())
                     .for_each(|p| p.hand.push(self.deck.deal()));
             }
-            GameState::Shutdown => {}
+            GameState::Shutdown => {
+                self.game_result = Some(self.evaluate_hands());
+            }
         };
         self.change_state();
     }
@@ -129,18 +147,64 @@ impl Dealer {
             GameState::Shutdown => GameState::Shutdown,
         };
     }
+
+    fn evaluate_hands(&mut self) -> GameResult {
+        let mut ranks: Vec<PlayerRank> = self
+            .players
+            .iter()
+            .map(|p| {
+                PlayerRank::of(
+                    &p.id,
+                    evaluate_hand(&[p.hand.clone(), self.cards_on_table.clone()].concat()),
+                )
+            })
+            .collect();
+
+        ranks.sort_by(|a, b| a.rank.cmp(&b.rank));
+        let first = ranks.get(0).unwrap();
+        let second = ranks.get(1).unwrap();
+
+        match first.rank.cmp(&second.rank) {
+            std::cmp::Ordering::Greater => GameResult::Winner(first.clone()),
+            std::cmp::Ordering::Less => panic!("Impossible ranking sort!"),
+            std::cmp::Ordering::Equal => GameResult::Tie(first.clone(), second.clone()),
+        }
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+pub struct PlayerRank {
+    pub id: String,
+    pub rank: HandRank,
+}
+
+impl PlayerRank {
+    pub fn of(id: &str, rank: HandRank) -> Self {
+        PlayerRank {
+            id: id.to_string(),
+            rank: rank.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum GameResult {
+    Winner(PlayerRank),
+    Tie(PlayerRank, PlayerRank),
+}
+
+#[derive(Debug, Clone)]
 pub struct GameTable {
     dealer: Dealer,
 }
 
 impl GameTable {
     pub fn set_a_table() -> Self {
-        GameTable {
+        let mut table = GameTable {
             dealer: Dealer::new(vec![]),
-        }
+        };
+        table.dealer.knock_knock();
+        table
     }
 
     pub fn add_player(&mut self, id: &str) {
@@ -155,13 +219,17 @@ impl GameTable {
         self.dealer.remove_player(id)
     }
 
-    pub fn player_change_state(&mut self, id: &str, state: &PlayerState) {
+    pub fn player_change_state(&mut self, id: &str, state: &PlayerState) -> bool {
         self.dealer.player_change_state(id, state)
+    }
+
+    pub fn get_result(&self) -> GameResult {
+        self.dealer.game_result.clone().unwrap()
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-enum GameState {
+#[derive(Debug, Clone)]
+pub enum GameState {
     PreDeal,
     Blinds,
     PreFlop,
@@ -176,19 +244,24 @@ pub struct PlayerDto {
     pub id: String,
     pub role: Option<Role>,
     pub state: PlayerState,
+    pub hand: Vec<Card>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct TableDto {
     pub id: String,
+    pub state: GameState,
     pub players: Vec<PlayerDto>,
+    pub result: Option<GameResult>,
 }
 
 impl TableDto {
-    pub fn new(table_id: &str, players: Vec<PlayerDto>) -> Self {
+    pub fn from(table_id: &str, table: &GameTable) -> Self {
         TableDto {
             id: table_id.to_string(),
-            players,
+            players: table.players(),
+            state: table.dealer.game_state.clone(),
+            result: None,
         }
     }
 }

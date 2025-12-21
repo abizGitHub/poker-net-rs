@@ -1,12 +1,12 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, result, sync::Arc};
 
 use tokio::sync::RwLock;
 
 use crate::{
     base::{
         casino,
-        state_manager::{StateManager, StateManagerResponse},
-        table::{PlayerDto, PlayerState},
+        state_manager::StateManager,
+        table::{GameResult, GameState, PlayerDto, PlayerState},
     },
     net::dispatcher::{BatchMsg, DispatcherCmd, FatMsg},
 };
@@ -67,23 +67,31 @@ impl Manager {
 
             RequestWrapper::ReadyToStartGame => match self.addr_playes.read().await.get(&from) {
                 Some(player_id) => {
-                    let mut batches = vec![];
-                    for r in self
+                    let (table, state_changed) = self
                         .state_manager
                         .process(player_id, &PlayerState::READY)
-                        .await
-                        .into_iter()
-                    {
-                        batches.push(match r {
-                            StateManagerResponse::PlayerStateChanged(table) => BatchMsg::new(
-                                self.players_to_address(&table.players).await,
-                                ResponseWrapper::Players(table.players),
-                            ),
-                            StateManagerResponse::StartGame(table) => BatchMsg::new(
-                                self.players_to_address(&table.players).await,
-                                ResponseWrapper::StartGame,
-                            ),
-                        })
+                        .await;
+
+                    let receivers = self.players_to_address(&table.players).await;
+
+                    let mut batches = vec![BatchMsg::new(
+                        receivers.clone(),
+                        ResponseWrapper::Players(table.players),
+                    )];
+                    if state_changed {
+                        batches.push(BatchMsg::new(
+                            receivers.clone(),
+                            ResponseWrapper::GameStatusChanged(table.state.clone()),
+                        ));
+                        match table.state {
+                            GameState::Shutdown => batches.push(BatchMsg::new(
+                                receivers.clone(),
+                                ResponseWrapper::GameFinished(
+                                    self.state_manager.get_result(&table.id).await,
+                                ),
+                            )),
+                            _ => {}
+                        }
                     }
                     batches
                 }
@@ -135,7 +143,8 @@ pub enum ResponseWrapper {
     UserId(String),
     Players(Vec<PlayerDto>),
     PlayerDisconnected(String),
-    StartGame,
+    GameStatusChanged(GameState),
+    GameFinished(GameResult),
     Unknown(String),
 }
 
@@ -150,7 +159,8 @@ impl Into<String> for ResponseWrapper {
                 format!("players::{:?}", f)
             }
             Self::PlayerDisconnected(id) => format!("player_discannected::{id}"),
-            Self::StartGame => format!("start_game"),
+            Self::GameStatusChanged(status) => format!("game::{status:?}"),
+            Self::GameFinished(result) => format!("end::{result:?}"),
             Self::Unknown(m) => format!("unknown::{m}"),
         }
     }
