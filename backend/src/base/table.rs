@@ -1,5 +1,3 @@
-use std::error;
-
 use serde::{Deserialize, Serialize};
 
 use crate::base::card::{Card, Deck, HandRank, evaluate_hand};
@@ -132,6 +130,7 @@ impl Dealer {
             GameState::Shutdown => {
                 self.game_result = Some(self.evaluate_hands());
             }
+            GameState::Ended => {}
         };
         self.change_state();
     }
@@ -144,7 +143,8 @@ impl Dealer {
             GameState::Flop => GameState::Turn,
             GameState::Turn => GameState::River,
             GameState::River => GameState::Shutdown,
-            GameState::Shutdown => GameState::Shutdown,
+            GameState::Shutdown => GameState::Ended,
+            GameState::Ended => GameState::Ended,
         };
     }
 
@@ -223,8 +223,8 @@ impl GameTable {
         self.dealer.player_change_state(id, state)
     }
 
-    pub fn get_result(&self) -> GameResult {
-        self.dealer.game_result.clone().unwrap()
+    pub fn get_result(&self) -> Option<GameResult> {
+        self.dealer.game_result.clone()
     }
 }
 
@@ -237,6 +237,7 @@ pub enum GameState {
     Turn,
     River,
     Shutdown,
+    Ended,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -256,12 +257,12 @@ pub struct TableDto {
 }
 
 impl TableDto {
-    pub fn from(table_id: &str, table: &GameTable) -> Self {
+    pub fn from(table_id: &str, table: &GameTable, result: Option<GameResult>) -> Self {
         TableDto {
             id: table_id.to_string(),
             players: table.players(),
             state: table.dealer.game_state.clone(),
-            result: None,
+            result,
         }
     }
 }

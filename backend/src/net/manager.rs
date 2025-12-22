@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr, result, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
 use tokio::sync::RwLock;
 
@@ -65,7 +65,7 @@ impl Manager {
                 ]
             }
 
-            RequestWrapper::ReadyToStartGame => match self.addr_playes.read().await.get(&from) {
+            RequestWrapper::Ready => match self.addr_playes.read().await.get(&from) {
                 Some(player_id) => {
                     let (table, state_changed) = self
                         .state_manager
@@ -84,10 +84,10 @@ impl Manager {
                             ResponseWrapper::GameStatusChanged(table.state.clone()),
                         ));
                         match table.state {
-                            GameState::Shutdown => batches.push(BatchMsg::new(
+                            GameState::Ended => batches.push(BatchMsg::new(
                                 receivers.clone(),
                                 ResponseWrapper::GameFinished(
-                                    self.state_manager.get_result(&table.id).await,
+                                    table.result.expect("game has finished!"),
                                 ),
                             )),
                             _ => {}
@@ -169,7 +169,7 @@ impl Into<String> for ResponseWrapper {
 pub enum RequestWrapper {
     SetATable,
     AddPlayerToTable(String),
-    ReadyToStartGame,
+    Ready,
     Unknown(String),
 }
 
@@ -179,7 +179,7 @@ impl From<&str> for RequestWrapper {
         match cmd.len() {
             1 => match cmd[0] {
                 "set_a_table" => Self::SetATable,
-                "READY" => Self::ReadyToStartGame,
+                "ready" => Self::Ready,
                 _ => Self::Unknown(value.to_string()),
             },
             2 => match cmd[0] {

@@ -1,8 +1,8 @@
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use std::sync::RwLock;
+use tokio::sync::RwLock;
 
-use crate::base::table::{GameResult, GameTable, PlayerDto, PlayerState, TableDto};
+use crate::base::table::{GameTable, PlayerDto, PlayerState, TableDto};
 static TABLES: Lazy<RwLock<HashMap<String, GameTable>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 static PLAYERS_ON_TABLES: Lazy<RwLock<HashMap<String, String>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
@@ -10,22 +10,19 @@ static PLAYERS_ON_TABLES: Lazy<RwLock<HashMap<String, String>>> =
 pub async fn set_a_table() -> String {
     let table_id = generate_long_id();
     let table = GameTable::set_a_table();
-    TABLES
-        .write()
-        .expect("could not write!")
-        .insert(table_id.clone(), table);
+    TABLES.write().await.insert(table_id.clone(), table);
     table_id
 }
 
 pub async fn add_player_to_table(table_id: &str) -> Result<String, ()> {
-    match TABLES.write().unwrap().get_mut(table_id) {
+    match TABLES.write().await.get_mut(table_id) {
         Some(table) => {
             let palyer_id = generate_short_id();
             table.add_player(&palyer_id);
 
             PLAYERS_ON_TABLES
                 .write()
-                .unwrap()
+                .await
                 .insert(palyer_id.clone(), table_id.to_string());
             Ok(palyer_id)
         }
@@ -34,20 +31,16 @@ pub async fn add_player_to_table(table_id: &str) -> Result<String, ()> {
 }
 
 pub async fn get_table_players(table_id: &str) -> Result<Vec<PlayerDto>, ()> {
-    match TABLES.read().unwrap().get(table_id) {
+    match TABLES.read().await.get(table_id) {
         Some(table) => Ok(table.players()),
         None => Err(()),
     }
 }
 
 pub async fn player_disconnected(player_id: &str) -> Vec<PlayerDto> {
-    let table_id = PLAYERS_ON_TABLES
-        .write()
-        .unwrap()
-        .remove(player_id)
-        .unwrap();
+    let table_id = PLAYERS_ON_TABLES.write().await.remove(player_id).unwrap();
 
-    match TABLES.write().unwrap().get_mut(&table_id) {
+    match TABLES.write().await.get_mut(&table_id) {
         Some(table) => {
             table.remove_player(player_id);
             table.players().iter().map(|p| p.clone()).collect()
@@ -56,24 +49,33 @@ pub async fn player_disconnected(player_id: &str) -> Vec<PlayerDto> {
     }
 }
 
-pub async fn player_change_state(
-    player_id: &str,
-    new_state: &PlayerState,
-) -> Result<(TableDto, bool), ()> {
-    match PLAYERS_ON_TABLES.read().unwrap().get(player_id) {
-        Some(table_id) => match TABLES.write().unwrap().get_mut(table_id) {
-            Some(table) => {
-                let game_changed = table.player_change_state(player_id, new_state);
-                Ok((TableDto::from(table_id, table), game_changed))
-            }
-            None => Err(()),
-        },
-        None => Err(()),
-    }
-}
+pub async fn player_change_state(player_id: &str, new_state: &PlayerState) -> (TableDto, bool) {
+    let table_id = {
+        PLAYERS_ON_TABLES
+            .read()
+            .await
+            .get(player_id)
+            .unwrap()
+            .to_string()
+    };
+    let (table, game_changed) = {
+        let mut lock = TABLES.write().await;
+        let game_changed = lock
+            .get_mut(&table_id)
+            .unwrap()
+            .player_change_state(player_id, new_state);
 
-pub async fn get_table_result(table_id: &str) -> GameResult {
-    TABLES.read().unwrap().get(table_id).unwrap().get_result()
+        (lock.get(&table_id).unwrap().clone(), game_changed)
+    };
+
+    (
+        TableDto::from(
+            &table_id,
+            &table,
+            TABLES.read().await.get(&table_id).unwrap().get_result(),
+        ),
+        game_changed,
+    )
 }
 
 fn generate_short_id() -> String {
