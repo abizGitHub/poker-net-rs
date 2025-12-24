@@ -160,7 +160,7 @@ impl Dealer {
             })
             .collect();
 
-        ranks.sort_by(|a, b| a.rank.cmp(&b.rank));
+        ranks.sort_by(|a, b| b.rank.cmp(&a.rank));
         let first = ranks.get(0).unwrap();
         let second = ranks.get(1).unwrap();
 
@@ -172,7 +172,7 @@ impl Dealer {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct PlayerRank {
     pub id: String,
     pub rank: HandRank,
@@ -187,7 +187,7 @@ impl PlayerRank {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum GameResult {
     Winner(PlayerRank),
     Tie(PlayerRank, PlayerRank),
@@ -228,7 +228,7 @@ impl GameTable {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum GameState {
     PreDeal,
     Blinds,

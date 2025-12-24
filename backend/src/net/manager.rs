@@ -153,14 +153,19 @@ impl Into<String> for ResponseWrapper {
         match self {
             Self::TableId(id) => format!("table_id::{id}"),
             Self::UserId(id) => format!("user_id::{id}"),
-            Self::Players(ps) => {
-                let f = serde_json::to_string(&ps);
-                println!("{f:?}");
-                format!("players::{:?}", f)
-            }
+            Self::Players(ps) => match serde_json::to_string(&ps) {
+                Ok(s) => format!("players::{s}"),
+                Err(_) => format!("error in players!"),
+            },
             Self::PlayerDisconnected(id) => format!("player_discannected::{id}"),
-            Self::GameStatusChanged(status) => format!("game::{status:?}"),
-            Self::GameFinished(result) => format!("end::{result:?}"),
+            Self::GameStatusChanged(status) => match serde_json::to_string(&status) {
+                Ok(s) => format!("game::{s}"),
+                Err(_) => format!("error in game!"),
+            },
+            Self::GameFinished(result) => match serde_json::to_string(&result) {
+                Ok(s) => format!("end::{s}"),
+                Err(_) => format!("error in end!"),
+            },
             Self::Unknown(m) => format!("unknown::{m}"),
         }
     }
