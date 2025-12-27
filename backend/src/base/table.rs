@@ -116,12 +116,16 @@ impl Dealer {
             }
 
             GameState::Turn => {
+                self.cards_on_table.push(self.deck.deal());
+
                 self.players
                     .iter_mut()
                     .filter(|p| p.role.is_some())
                     .for_each(|p| p.hand.push(self.deck.deal()));
             }
             GameState::River => {
+                self.cards_on_table.push(self.deck.deal());
+                
                 self.players
                     .iter_mut()
                     .filter(|p| p.role.is_some())
@@ -253,6 +257,7 @@ pub struct TableDto {
     pub id: String,
     pub state: GameState,
     pub players: Vec<PlayerDto>,
+    pub card_on_table: Vec<Card>,
     pub result: Option<GameResult>,
 }
 
@@ -262,6 +267,7 @@ impl TableDto {
             id: table_id.to_string(),
             players: table.players(),
             state: table.dealer.game_state.clone(),
+            card_on_table: table.dealer.cards_on_table.clone(),
             result,
         }
     }

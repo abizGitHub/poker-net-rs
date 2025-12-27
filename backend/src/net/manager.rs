@@ -4,6 +4,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     base::{
+        card::Card,
         casino,
         state_manager::StateManager,
         table::{GameResult, GameState, PlayerDto, PlayerState},
@@ -84,6 +85,12 @@ impl Manager {
                             ResponseWrapper::GameStatusChanged(table.state.clone()),
                         ));
                         match table.state {
+                            GameState::Flop | GameState::Turn | GameState::River => {
+                                batches.push(BatchMsg::new(
+                                    receivers.clone(),
+                                    ResponseWrapper::CardsOnTable(table.card_on_table),
+                                ))
+                            }
                             GameState::Ended => batches.push(BatchMsg::new(
                                 receivers.clone(),
                                 ResponseWrapper::GameFinished(
@@ -143,6 +150,7 @@ pub enum ResponseWrapper {
     UserId(String),
     Players(Vec<PlayerDto>),
     PlayerDisconnected(String),
+    CardsOnTable(Vec<Card>),
     GameStatusChanged(GameState),
     GameFinished(GameResult),
     Unknown(String),
@@ -162,6 +170,7 @@ impl Into<String> for ResponseWrapper {
                 Ok(s) => format!("game::{s}"),
                 Err(_) => format!("error in game!"),
             },
+            Self::CardsOnTable(cards) => format!("table::{:?}", cards),
             Self::GameFinished(result) => match serde_json::to_string(&result) {
                 Ok(s) => format!("end::{s}"),
                 Err(_) => format!("error in end!"),
