@@ -3,3 +3,6 @@
 /pkg    
 /backend/target
 /backend/Cargo.lock   
+/frontend/dist
+/frontend/target
+/frontend/Cargo.lock    
