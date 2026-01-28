@@ -78,6 +78,10 @@ pub async fn player_change_state(player_id: &str, new_state: &PlayerState) -> (T
     )
 }
 
+pub async fn all_tables() -> Vec<String> {
+    TABLES.read().await.keys().map(|k| k.clone()).collect()
+}
+
 fn generate_short_id() -> String {
     uuid::Uuid::new_v4()
         .to_string()

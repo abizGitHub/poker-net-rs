@@ -125,7 +125,7 @@ impl Dealer {
             }
             GameState::River => {
                 self.cards_on_table.push(self.deck.deal());
-                
+
                 self.players
                     .iter_mut()
                     .filter(|p| p.role.is_some())

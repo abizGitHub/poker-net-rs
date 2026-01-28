@@ -109,6 +109,15 @@ impl Manager {
                 )],
             },
 
+            RequestWrapper::AllTables => {
+                let all_tables = casino::all_tables().await;
+                println!("<all_tables>{all_tables:?}");
+                vec![BatchMsg::new(
+                    vec![from.clone()],
+                    ResponseWrapper::AllTables(all_tables),
+                )]
+            }
+
             RequestWrapper::Unknown(msg) => vec![BatchMsg::new(
                 vec![from.clone()],
                 ResponseWrapper::Unknown(msg),
@@ -127,19 +136,22 @@ impl Manager {
     pub async fn dispatcher_cmd(&mut self, cmd: DispatcherCmd) -> Vec<BatchMsg> {
         match cmd {
             DispatcherCmd::PlayerLeft(addr) => {
-                let player_id = self.addr_playes.write().await.remove(&addr).unwrap();
-                let players_on_table = casino::player_disconnected(&player_id).await;
-                let players_map = self.playes_addr.read().await;
+                if let Some(player_id) = self.addr_playes.write().await.remove(&addr) {
+                    let players_on_table = casino::player_disconnected(&player_id).await;
+                    let players_map = self.playes_addr.read().await;
 
-                let players_on_table = players_on_table
-                    .iter()
-                    .map(|p| players_map.get(&p.id).unwrap().clone())
-                    .collect();
+                    let players_on_table = players_on_table
+                        .iter()
+                        .map(|p| players_map.get(&p.id).unwrap().clone())
+                        .collect();
 
-                vec![BatchMsg::new(
-                    players_on_table,
-                    ResponseWrapper::PlayerDisconnected(player_id),
-                )]
+                    vec![BatchMsg::new(
+                        players_on_table,
+                        ResponseWrapper::PlayerDisconnected(player_id),
+                    )]
+                } else {
+                    vec![]
+                }
             }
         }
     }
@@ -153,6 +165,7 @@ pub enum ResponseWrapper {
     CardsOnTable(Vec<Card>),
     GameStatusChanged(GameState),
     GameFinished(GameResult),
+    AllTables(Vec<String>),
     Unknown(String),
 }
 
@@ -165,7 +178,7 @@ impl Into<String> for ResponseWrapper {
                 Ok(s) => format!("players::{s}"),
                 Err(_) => format!("error in players!"),
             },
-            Self::PlayerDisconnected(id) => format!("player_discannected::{id}"),
+            Self::PlayerDisconnected(id) => format!("player_disconnected::{id}"),
             Self::GameStatusChanged(status) => match serde_json::to_string(&status) {
                 Ok(s) => format!("game::{s}"),
                 Err(_) => format!("error in game!"),
@@ -175,6 +188,7 @@ impl Into<String> for ResponseWrapper {
                 Ok(s) => format!("end::{s}"),
                 Err(_) => format!("error in end!"),
             },
+            Self::AllTables(tables) => format!("all_tables::{:?}", tables),
             Self::Unknown(m) => format!("unknown::{m}"),
         }
     }
@@ -184,6 +198,7 @@ pub enum RequestWrapper {
     SetATable,
     AddPlayerToTable(String),
     Ready,
+    AllTables,
     Unknown(String),
 }
 
@@ -194,6 +209,7 @@ impl From<&str> for RequestWrapper {
             1 => match cmd[0] {
                 "set_a_table" => Self::SetATable,
                 "ready" => Self::Ready,
+                "all_tables" => Self::AllTables,
                 _ => Self::Unknown(value.to_string()),
             },
             2 => match cmd[0] {

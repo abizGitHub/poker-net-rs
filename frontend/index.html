@@ -4,6 +4,39 @@
 <head>
     <meta charset="utf-8" />
     <title> YEW </title>
+    <link data-trunk rel="css" type="text/css" href="table.css">
+    <style>
+        /* Styles */
+        body {
+          margin: 0;
+          padding: 0;
+        }
+    
+        .container {
+          width: 98%;
+          /* Allow for a small gap between the table and screen edges */
+          height: calc(100vh - 2rem);
+          /* Calculate the full viewport height minus some space at top/bottom */
+        }
+    
+        table {
+          border-collapse: collapse;
+          width: 98%;
+          height: 98%;
+          margin: 0 auto;
+          /* Center horizontally */
+          max-width: calc(100vw - 2rem);
+          /* Prevent the table from growing too large, and leave some room for margins */
+          border: 1px solid rgb(241, 236, 236)
+        }
+    
+        th,
+        td {
+          text-align: center;
+          padding: 5px;
+          border: 1px solid rgb(247, 240, 240)
+        }
+      </style>
 </head>
 
 <body>

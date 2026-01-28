@@ -78,10 +78,9 @@ impl Dispatcher {
 
                 for resp in manager.process(msg).await {
                     for id in resp.to {
-                        let _ = outbox
-                            .get(&id)
-                            .unwrap()
-                            .send(Message::Text(resp.msg.clone()));
+                        if let Some(o) = outbox.get(&id) {
+                            let _ = o.send(Message::Text(resp.msg.clone()));
+                        }
                     }
                 }
             }
@@ -147,6 +146,7 @@ pub async fn handle_socket(
     //let tx_inbound = tx.clone();
     let inbound = tokio::spawn(async move {
         while let Some(msg) = read.next().await {
+            println!("{msg:?}");
             match msg {
                 Ok(Message::Text(_) | Message::Binary(_)) => {
                     let _ = tx.send(FatMsg::new(addr, msg.unwrap().into_text().unwrap()));
