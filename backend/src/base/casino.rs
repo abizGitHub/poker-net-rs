@@ -1,8 +1,9 @@
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use tokio::sync::RwLock;
+use common::{Player, PlayerState, TableDto};
+use crate::base::game_base::GameTable;
 
-use crate::base::table::{GameTable, PlayerDto, PlayerState, TableDto};
 static TABLES: Lazy<RwLock<HashMap<String, GameTable>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 static PLAYERS_ON_TABLES: Lazy<RwLock<HashMap<String, String>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
@@ -30,14 +31,14 @@ pub async fn add_player_to_table(table_id: &str) -> Result<String, ()> {
     }
 }
 
-pub async fn get_table_players(table_id: &str) -> Result<Vec<PlayerDto>, ()> {
+pub async fn get_table_players(table_id: &str) -> Result<Vec<Player>, ()> {
     match TABLES.read().await.get(table_id) {
         Some(table) => Ok(table.players()),
         None => Err(()),
     }
 }
 
-pub async fn player_disconnected(player_id: &str) -> Vec<PlayerDto> {
+pub async fn player_disconnected(player_id: &str) -> Vec<Player> {
     let table_id = PLAYERS_ON_TABLES.write().await.remove(player_id).unwrap();
 
     match TABLES.write().await.get_mut(&table_id) {
@@ -58,7 +59,7 @@ pub async fn player_change_state(player_id: &str, new_state: &PlayerState) -> (T
             .unwrap()
             .to_string()
     };
-    let (table, game_changed) = {
+    let (table, game_changed): (GameTable, bool) = {
         let mut lock = TABLES.write().await;
         let game_changed = lock
             .get_mut(&table_id)
@@ -70,8 +71,10 @@ pub async fn player_change_state(player_id: &str, new_state: &PlayerState) -> (T
 
     (
         TableDto::from(
-            &table_id,
-            &table,
+            table_id.clone(),
+            table.players().clone(),
+            table.dealer.game_state,
+            table.dealer.cards_on_table,
             TABLES.read().await.get(&table_id).unwrap().get_result(),
         ),
         game_changed,

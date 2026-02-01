@@ -1,6 +1,7 @@
 /target
 /node_modules
-/pkg    
+/pkg
+Cargo.lock
 /backend/target
 /backend/Cargo.lock   
 /frontend/dist

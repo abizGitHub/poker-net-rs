@@ -1,7 +1,5 @@
-use crate::base::{
-    casino,
-    table::{PlayerState, TableDto},
-};
+use crate::base::casino;
+use common::*;
 
 pub struct StateManager;
 

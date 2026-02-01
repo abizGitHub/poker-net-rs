@@ -1,14 +1,10 @@
+use common::*;
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
 use tokio::sync::RwLock;
 
 use crate::{
-    base::{
-        card::Card,
-        casino,
-        state_manager::StateManager,
-        table::{GameResult, GameState, PlayerDto, PlayerState},
-    },
+    base::{casino, state_manager::StateManager},
     net::dispatcher::{BatchMsg, DispatcherCmd, FatMsg},
 };
 
@@ -42,7 +38,7 @@ impl Manager {
             RequestWrapper::AddPlayerToTable(table_id) => {
                 let player_id = casino::add_player_to_table(&table_id).await.unwrap();
 
-                let players: Vec<PlayerDto> = casino::get_table_players(&table_id)
+                let players: Vec<Player> = casino::get_table_players(&table_id)
                     .await
                     .unwrap()
                     .into_iter()
@@ -125,7 +121,7 @@ impl Manager {
         }
     }
 
-    async fn players_to_address(&self, players: &Vec<PlayerDto>) -> Vec<SocketAddr> {
+    async fn players_to_address(&self, players: &Vec<Player>) -> Vec<SocketAddr> {
         let map = self.playes_addr.read().await;
         players
             .iter()
@@ -160,7 +156,7 @@ impl Manager {
 pub enum ResponseWrapper {
     TableId(String),
     UserId(String),
-    Players(Vec<PlayerDto>),
+    Players(Vec<Player>),
     PlayerDisconnected(String),
     CardsOnTable(Vec<Card>),
     GameStatusChanged(GameState),
