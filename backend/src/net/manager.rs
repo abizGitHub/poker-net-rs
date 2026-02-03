@@ -34,7 +34,13 @@ impl Manager {
                     ResponseWrapper::TableId(casino::set_a_table().await),
                 )]
             }
-
+            RequestWrapper::JoinToTable(table_id) => {
+                let response = match casino::get_table(&table_id).await {
+                    Ok(_) => ResponseWrapper::TableId(table_id),
+                    Err(_) => ResponseWrapper::Unknown(format!("table not found {table_id}")),
+                };
+                vec![BatchMsg::new(vec![from.clone()], response)]
+            }
             RequestWrapper::AddPlayerToTable(table_id) => {
                 let player_id = casino::add_player_to_table(&table_id).await.unwrap();
 
@@ -81,12 +87,13 @@ impl Manager {
                             ResponseWrapper::GameStatusChanged(table.state.clone()),
                         ));
                         match table.state {
-                            GameState::Flop | GameState::Turn | GameState::River => {
-                                batches.push(BatchMsg::new(
-                                    receivers.clone(),
-                                    ResponseWrapper::CardsOnTable(table.card_on_table),
-                                ))
-                            }
+                            GameState::Flop
+                            | GameState::Turn
+                            | GameState::River
+                            | GameState::Shutdown => batches.push(BatchMsg::new(
+                                receivers.clone(),
+                                ResponseWrapper::CardsOnTable(table.card_on_table),
+                            )),
                             GameState::Ended => batches.push(BatchMsg::new(
                                 receivers.clone(),
                                 ResponseWrapper::GameFinished(
@@ -175,11 +182,10 @@ impl Into<String> for ResponseWrapper {
                 Err(_) => format!("error in players!"),
             },
             Self::PlayerDisconnected(id) => format!("player_disconnected::{id}"),
-            Self::GameStatusChanged(status) => match serde_json::to_string(&status) {
-                Ok(s) => format!("game::{s}"),
-                Err(_) => format!("error in game!"),
-            },
-            Self::CardsOnTable(cards) => format!("table::{:?}", cards),
+            Self::GameStatusChanged(status) => format!("game::{}", serde_json::to_string(&status).unwrap()),
+            Self::CardsOnTable(cards) => {
+                format!("table::{}", serde_json::to_string(&cards).unwrap())
+            }
             Self::GameFinished(result) => match serde_json::to_string(&result) {
                 Ok(s) => format!("end::{s}"),
                 Err(_) => format!("error in end!"),
@@ -192,6 +198,7 @@ impl Into<String> for ResponseWrapper {
 
 pub enum RequestWrapper {
     SetATable,
+    JoinToTable(String),
     AddPlayerToTable(String),
     Ready,
     AllTables,
@@ -209,6 +216,7 @@ impl From<&str> for RequestWrapper {
                 _ => Self::Unknown(value.to_string()),
             },
             2 => match cmd[0] {
+                "join_to_table" => Self::JoinToTable(cmd[1].to_string()),
                 "add_player_to_table" => Self::AddPlayerToTable(cmd[1].to_string()),
                 _ => Self::Unknown(value.to_string()),
             },

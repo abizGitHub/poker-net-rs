@@ -138,9 +138,16 @@ body {
 
 .players {
     width: 20%;
+    position: relative;
 }
 
 .players_header {
     height: 10%;
     width: 98%;
+}
+
+.game_state{
+    position: absolute;
+    top: 5%;
+    left: 20%;
 }

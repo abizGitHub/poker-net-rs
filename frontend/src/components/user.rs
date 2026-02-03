@@ -4,8 +4,16 @@ use crate::contexts::game_state::ContextHolder;
 
 #[function_component(User)]
 pub fn user() -> Html {
-    let user_id = use_context::<ContextHolder>().unwrap().user_id;
+    let ctx = use_context::<ContextHolder>().unwrap();
+    let user_state = match ctx.players.iter().find(|p| ctx.user_id == p.id) {
+        Some(user) => html! {{format!("{:?}", user.state)}},
+        None => html!(),
+    };
+
     html!(
-        <div> {user_id} </div>
+        <div>
+          <td>{ctx.user_id}</td>
+          <td>{user_state}</td>
+        </div>
     )
 }

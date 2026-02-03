@@ -6,8 +6,8 @@ pub struct CardProps {
     pub suit: AttrValue,
 }
 
-#[function_component(Card)]
-pub fn card(c: &CardProps) -> Html {
+#[function_component(CardUi)]
+pub fn card_ui(c: &CardProps) -> Html {
     let (card_state, color) = match c.suit.clone().as_str() {
         "♥" | "♦" => ("card", "red"),
         "♣" | "♠" => ("card", "black"),

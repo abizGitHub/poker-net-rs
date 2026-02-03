@@ -1,6 +1,6 @@
+use common::*;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use common::*;
 
 #[derive(Debug, Clone)]
 pub struct Dealer {
@@ -149,18 +149,18 @@ impl Dealer {
             GameState::Turn => {
                 self.cards_on_table.push(self.deck.deal());
 
-                self.players
-                    .iter_mut()
-                    .filter(|p| p.role.is_some())
-                    .for_each(|p| p.hand.push(self.deck.deal()));
+                // self.players
+                //     .iter_mut()
+                //     .filter(|p| p.role.is_some())
+                //     .for_each(|p| p.hand.push(self.deck.deal()));
             }
             GameState::River => {
                 self.cards_on_table.push(self.deck.deal());
 
-                self.players
-                    .iter_mut()
-                    .filter(|p| p.role.is_some())
-                    .for_each(|p| p.hand.push(self.deck.deal()));
+                // self.players
+                //     .iter_mut()
+                //     .filter(|p| p.role.is_some())
+                //     .for_each(|p| p.hand.push(self.deck.deal()));
             }
             GameState::Shutdown => {
                 self.game_result = Some(self.evaluate_hands());

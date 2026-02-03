@@ -5,6 +5,7 @@ use crate::{
     },
     contexts::game_state::ContextHolder,
 };
+use common::{Card, GameState, Player};
 use yew::prelude::*;
 use yew_hooks::{UseWebSocketReadyState, use_websocket};
 mod components;
@@ -68,28 +69,30 @@ fn App() -> Html {
                 let mut ctx_cloned = (*ctx_cloned).clone();
                 let table_id = cloned.split("::").skip(1).next().unwrap().to_string();
                 ctx_cloned.table_id = table_id.clone();
-                ctx.set(ctx_cloned.clone());
+                ctx.set(ctx_cloned);
                 cloned6_ws.send(format!("add_player_to_table::{table_id}"));
             }
             if cloned.starts_with("user_id") {
                 let ctx = ctx_cloned.clone();
                 let mut ctx_cloned = (*ctx_cloned).clone();
                 ctx_cloned.user_id = cloned.split("::").skip(1).next().unwrap().to_string();
-                ctx.set((ctx_cloned).clone());
+                ctx.set(ctx_cloned);
             }
             if cloned.starts_with("players") {
                 let ctx = ctx_cloned.clone();
                 let mut ctx_cloned = (*ctx_cloned).clone();
                 ctx_cloned.players =
-                    serde_json::from_str::<Vec<String>>(cloned.split("::").skip(1).next().unwrap())
-                        .unwrap().into_iter().collect();
-                ctx.set((ctx_cloned).clone());
+                    serde_json::from_str::<Vec<Player>>(cloned.split("::").skip(1).next().unwrap())
+                        .unwrap()
+                        .into_iter()                        
+                        .collect();
+                ctx.set(ctx_cloned);
             }
             if cloned.starts_with("game") {
                 let ctx = ctx_cloned.clone();
                 let mut ctx_cloned = (*ctx_cloned).clone();
-                ctx_cloned.game_state = cloned.split("::").skip(1).next().unwrap().to_string();
-                ctx.set((ctx_cloned).clone());
+                ctx_cloned.game_state = serde_json::from_str::<GameState>(cloned.split("::").skip(1).next().unwrap()).unwrap();
+                ctx.set(ctx_cloned);
             }
             if cloned.starts_with("all_tables") {
                 let list =
@@ -101,13 +104,22 @@ fn App() -> Html {
                             TableCall {
                                 table_id: table_id.clone(),
                                 callback: Callback::from(move |_: MouseEvent| {
-                                    ws.send(table_id.clone());
+                                    ws.send(format!("join_to_table::{}", table_id.clone()));
                                 }),
                             }
                         })
                         .collect();
 
                 tables_list_cloned.set(list);
+            }
+            if cloned.starts_with("table::") {
+                let ctx = ctx_cloned.clone();
+                let mut ctx_cloned = (*ctx_cloned).clone();
+                ctx_cloned.cards_on_table =
+                    serde_json::from_str::<Vec<Card>>(cloned.split("::").skip(1).next().unwrap())
+                        .unwrap();
+
+                ctx.set(ctx_cloned);
             }
         }
     });
@@ -120,14 +132,17 @@ fn App() -> Html {
             </>
         }
     } else {
-        html! {
-         <>
+        let log = html! {
             <ul id="chat">
                 {messages
                    .iter()
                    .map(|m| html!{<li> {m} </li>})
                    .collect::<Html>()}
             </ul>
+        };
+        html! {
+         <>
+           {log}
             <ContextProvider<ContextHolder> context={(*ctx).clone()}>
                <Room {click_types}/>
             </ContextProvider<ContextHolder>>
