@@ -1,4 +1,4 @@
-use common::{Card, GameState, Player};
+use common::{Card, GameResult, GameState, Player};
 
 #[derive(PartialEq, Clone, Debug, Default)]
 pub struct ContextHolder {
@@ -7,4 +7,5 @@ pub struct ContextHolder {
     pub user_id: String,
     pub players: Vec<Player>,
     pub cards_on_table: Vec<Card>,
+    pub result: Option<GameResult>,
 }
