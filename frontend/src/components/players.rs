@@ -16,6 +16,7 @@ pub fn players() -> Html {
              <tbody>
                  <tr class="players_header">
                     <td> {"players"} </td>
+                    <td> {"role"} </td>
                     <td> {"status"} </td>
                  </tr>
                   {ctx
@@ -25,6 +26,7 @@ pub fn players() -> Html {
                     .map(|p| html!{
                       <tr>
                         <td>{p.id.clone()}</td>
+                        <td>{p.role_str()}</td>
                         <td>{format!("{:?}", p.state)}</td>
                       </tr>
                     })

@@ -1,4 +1,4 @@
-use std::{default, fmt};
+use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
@@ -115,6 +115,19 @@ pub struct Player {
     pub role: Option<Role>,
     pub hand: Vec<Card>,
     pub state: PlayerState,
+    pub bet: Option<i32>,
+    pub balance: i32,
+}
+
+impl Player {
+    pub fn role_str(&self) -> String {
+        match self.role {
+            Some(Role::BigBlind) | Some(Role::SmallBlind) => {
+                format!("{:?}", self.role.clone().unwrap())
+            }
+            _ => "-".to_string(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -158,6 +171,8 @@ impl Player {
             role: None,
             hand: vec![],
             state: PlayerState::WAITING,
+            bet: None,
+            balance: 1000,
         }
     }
 }

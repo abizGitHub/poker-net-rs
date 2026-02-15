@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use pocker_back::base::casino;
+    use backend::base::casino;
 
     #[tokio::test]
     async fn set_a_table_then_add_some_players() {

@@ -17,6 +17,11 @@ pub fn first_page(props: &FirstPageProps) -> Html {
     let tables_list = use_context::<Vec<TableCall>>().unwrap();
 
     html! {
+        <>
+        <div class="hide">
+        {"text : "}
+        <input type="text"/>
+        </div>
         <div>
           <button class="btns" onclick={set_a_table}>{"start a game"}</button>
           <br/>{"or"}<br/>
@@ -31,5 +36,6 @@ pub fn first_page(props: &FirstPageProps) -> Html {
             }).collect::<Html>()
           }
         </div>
+        </>
     }
 }

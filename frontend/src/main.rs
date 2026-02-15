@@ -17,44 +17,27 @@ fn App() -> Html {
     let messages = (*messages_handle).clone();
 
     let ws = use_websocket("ws://127.0.0.1:9001".to_string());
+    
     let cloned_ws = ws.clone();
-
     let cloned1_ws = ws.clone();
     let cloned2_ws = ws.clone();
     let cloned3_ws = ws.clone();
     let cloned4_ws = ws.clone();
-    let cloned5_ws = ws.clone();
-    let cloned6_ws = ws.clone();
-    let cloned7_ws = ws.clone();
-    let cloned8_ws = ws.clone();
 
     let mut cloned_messages = messages.clone();
 
     let ctx = use_state(ContextHolder::default);
     let tables_list = use_state(|| Vec::<TableCall>::new());
     let tables_list_cloned = tables_list.clone();
-    let click_types = MouseClikType {
-        all_in: Callback::from(move |_: MouseEvent| {
-            cloned1_ws.send(format!("all_in"));
-        }),
-        raise: Callback::from(move |_: MouseEvent| {
-            cloned2_ws.send(format!("raise"));
-        }),
-        check: Callback::from(move |_: MouseEvent| {
-            cloned4_ws.send(format!("ready"));
-        }),
-        fold: Callback::from(move |_: MouseEvent| {
-            cloned3_ws.send(format!("fold"));
-        }),
-    };
+    let click_types = MouseClikType::new(&ws);
 
     let set_a_table = Callback::from(move |_: MouseEvent| {
-        cloned5_ws.send(format!("set_a_table"));
+        cloned1_ws.send(format!("set_a_table"));
     });
 
-    use_effect_with(cloned7_ws.ready_state, move |state| {
+    use_effect_with(cloned2_ws.ready_state, move |state| {
         if **state == UseWebSocketReadyState::Open {
-            cloned8_ws.send("all_tables".to_string());
+            cloned3_ws.send("all_tables".to_string());
         };
     });
 
@@ -70,7 +53,7 @@ fn App() -> Html {
                 let table_id = cloned.split("::").skip(1).next().unwrap().to_string();
                 ctx_cloned.table_id = table_id.clone();
                 ctx.set(ctx_cloned);
-                cloned6_ws.send(format!("add_player_to_table::{table_id}"));
+                cloned4_ws.send(format!("add_player_to_table::{table_id}"));
             }
             if cloned.starts_with("user_id") {
                 let ctx = ctx_cloned.clone();
@@ -84,14 +67,16 @@ fn App() -> Html {
                 ctx_cloned.players =
                     serde_json::from_str::<Vec<Player>>(cloned.split("::").skip(1).next().unwrap())
                         .unwrap()
-                        .into_iter()                        
+                        .into_iter()
                         .collect();
                 ctx.set(ctx_cloned);
             }
             if cloned.starts_with("game") {
                 let ctx = ctx_cloned.clone();
                 let mut ctx_cloned = (*ctx_cloned).clone();
-                ctx_cloned.game_state = serde_json::from_str::<GameState>(cloned.split("::").skip(1).next().unwrap()).unwrap();
+                ctx_cloned.game_state =
+                    serde_json::from_str::<GameState>(cloned.split("::").skip(1).next().unwrap())
+                        .unwrap();
                 ctx.set(ctx_cloned);
             }
             if cloned.starts_with("all_tables") {
