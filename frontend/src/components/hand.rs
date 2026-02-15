@@ -30,27 +30,25 @@ pub fn hand(props: &Props) -> Html {
     };
 
     let left_side = match ctx.game_state {
-    
         GameState::PreDeal | GameState::Blinds | GameState::PreFlop => html!(),
-    
-        _ => html!{<>
-             <button class="btns" onclick={all_in}>{"All-In🚀"}</button>
-             <button class="btns" onclick={raise}>{"🔺"}</button>
-            </>},
+
+        _ => html! {<>
+         <button class="btns" onclick={all_in}>{"All-In🚀"}</button>
+         <button class="btns" onclick={raise}>{"🔺"}</button>
+        </>},
     };
 
     let right_side = match ctx.game_state {
-    
         GameState::Ended => html!(),
 
-        _ => html!{<>
-             <button class="btns" onclick={check}>{"👍"}</button>
-             <button class="btns" onclick={fold}>{"👎"}</button>
-            </>},
+        _ => html! {<>
+         <button class="btns" onclick={check}>{"👍"}</button>
+         <button class="btns" onclick={fold}>{"👎"}</button>
+        </>},
     };
 
     html!(<section class="a-row">
-             {left_side}             
+             {left_side}
              {cards}
              {right_side}             
          </section>)

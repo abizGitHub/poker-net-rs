@@ -143,13 +143,13 @@ pub enum HandRank {
     StraightFlush(Rank),
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
 pub struct PlayerRank {
     pub id: String,
     pub rank: HandRank,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
 pub enum GameResult {
     Winner(PlayerRank),
     Tie(PlayerRank, PlayerRank),

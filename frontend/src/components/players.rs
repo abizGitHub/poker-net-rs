@@ -11,7 +11,7 @@ pub fn players() -> Html {
        <div class="game_state">
          {format!("{:?}", ctx.game_state)}
        </div>
-       <div>           
+       <div>
          <table>
              <tbody>
                  <tr class="players_header">

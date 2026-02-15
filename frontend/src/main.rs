@@ -5,7 +5,7 @@ use crate::{
     },
     contexts::game_state::ContextHolder,
 };
-use common::{Card, GameState, Player};
+use common::{Card, GameResult, GameState, Player};
 use yew::prelude::*;
 use yew_hooks::{UseWebSocketReadyState, use_websocket};
 mod components;
@@ -103,6 +103,14 @@ fn App() -> Html {
                 ctx_cloned.cards_on_table =
                     serde_json::from_str::<Vec<Card>>(cloned.split("::").skip(1).next().unwrap())
                         .unwrap();
+
+                ctx.set(ctx_cloned);
+            }
+            if cloned.starts_with("end::") {
+                let ctx = ctx_cloned.clone();
+                let mut ctx_cloned = (*ctx_cloned).clone();
+                ctx_cloned.result =
+                    serde_json::from_str::<Option<GameResult>>(cloned.split("::").skip(1).next().unwrap()).unwrap();
 
                 ctx.set(ctx_cloned);
             }
